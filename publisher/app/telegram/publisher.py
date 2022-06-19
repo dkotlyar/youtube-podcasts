@@ -17,7 +17,7 @@ def publish(envelope: EnvelopeBody, recipient: TelegramRecipient):
     """Publish envelope to telegram channel"""
 
     # create telegram bot instance,
-    tb = TelegramBot(environ.get('TELEGRAM_TOKEN', environ.get('TELEGRAM_SERVER')))
+    tb = TelegramBot(environ.get('TELEGRAM_TOKEN'), environ.get('TELEGRAM_SERVER'))
 
     hashtags = ' '.join(['#' + re.sub(r'\s+', '_', hashtag) for hashtag in envelope.hashtags])
     text = f'<strong>{envelope.title}</strong>\n\n' \
