@@ -349,6 +349,33 @@ class TelegramBot:
             files = dict(thumb=thumb)
         return self.request('sendAudio', json, files, args)
 
+    def delete_message(self, chat_id, message_id):
+        """
+        Use this method to delete a message, including service messages, with the
+        following limitations:
+        - A message can only be deleted if it was sent less than 48 hours ago.
+        - A dice message in a private chat can only be deleted if it was sent more than
+         24 hours ago.
+        - Bots can delete outgoing messages in private chats, groups, and supergroups.
+        - Bots can delete incoming messages in private chats.
+        - Bots granted can_post_messages permissions can delete outgoing messages in channels.
+        - If the bot is an administrator of a group, it can delete any message there.
+        - If the bot has can_delete_messages permission in a supergroup or a channel,
+        it can delete any message there.
+
+        Parameter   Type	            Required	Description
+        chat_id     Integer or String	Yes	        Unique identifier for the target chat or username
+                                                    of the target channel (in the format @channelusername)
+        message_id  Integer	            Yes	        Identifier of the message to delete
+
+        Returns:
+            True on success.
+        """
+        return self.request('deleteMessage', json_body=dict(
+            chat_id=chat_id,
+            message_id=message_id,
+        ))
+
 
 class TelegramBotHelper:
     @classmethod

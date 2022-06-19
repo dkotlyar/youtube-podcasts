@@ -16,6 +16,19 @@ from app.telegram.telegram_bot_api import TelegramBot, TelegramBotHelper
 def publish(envelope: EnvelopeBody, recipient: TelegramRecipient):
     """Publish envelope to telegram channel"""
 
+    transaction = []
+    try:
+        _publish(envelope, recipient, transaction)
+    except Exception as e:
+        _rollback(recipient, transaction)
+        raise e
+
+
+def _publish(envelope: EnvelopeBody, recipient: TelegramRecipient, transaction=None):
+    """Publish envelope to telegram channel"""
+    if transaction is None:
+        transaction = []
+
     # create telegram bot instance,
     tb = TelegramBot(environ.get('TELEGRAM_TOKEN'), environ.get('TELEGRAM_SERVER'))
 
@@ -55,23 +68,25 @@ def publish(envelope: EnvelopeBody, recipient: TelegramRecipient):
 
     # first send photo message
     if photo is not None:
-        tb.send_photo(
+        response = tb.send_photo(
             chat_id=recipient.channel_id,
             photo=cv2.imencode('.jpg', photo)[1],
             caption=caption,
             parse_mode='html',
         )
+        transaction.append(response['message_id'])
 
     # second send other text (description) message
     for msg in messages:
-        tb.send_message(
+        response = tb.send_message(
             chat_id=recipient.channel_id,
             text=msg,
             parse_mode='html',
         )
+        transaction.append(response['message_id'])
 
     # and the last send audio
-    tb.send_audio(
+    response = tb.send_audio(
         chat_id=recipient.channel_id,
         caption=f'<strong>{envelope.title}</strong>\n\n{hashtags}',
         parse_mode='html',
@@ -80,5 +95,20 @@ def publish(envelope: EnvelopeBody, recipient: TelegramRecipient):
         audio=audio,
         thumb=cv2.imencode('.jpg', thumb)[1] if thumb is not None else None
     )
+    transaction.append(response['message_id'])
 
     shutil.rmtree(tmpdir)
+
+
+def _rollback(recipient: TelegramRecipient, transaction):
+    """
+    Delete all messages in transaction list.
+    This method can be called for delete message if any exception raised while
+    processing task
+    """
+    tb = TelegramBot(environ.get('TELEGRAM_TOKEN'), environ.get('TELEGRAM_SERVER'))
+    for message_id in transaction:
+        try:
+            tb.delete_message(recipient.channel_id, message_id)
+        except:
+            pass
